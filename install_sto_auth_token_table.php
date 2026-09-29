@@ -1,0 +1,24 @@
+<?php
+require($_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_before.php');
+
+global $DB;
+
+$sql = "
+CREATE TABLE IF NOT EXISTS sto_auth_token (
+    ID INT NOT NULL AUTO_INCREMENT,
+    USER_ID INT NOT NULL,
+    ACCESS_TOKEN_HASH CHAR(64) NOT NULL,
+    REFRESH_TOKEN_HASH CHAR(64) NOT NULL,
+    ACCESS_EXPIRES_AT DATETIME NOT NULL,
+    REFRESH_EXPIRES_AT DATETIME NOT NULL,
+    CREATED_AT DATETIME NOT NULL,
+    PRIMARY KEY (ID),
+    KEY IX_USER_ID (USER_ID),
+    KEY IX_ACCESS_TOKEN_HASH (ACCESS_TOKEN_HASH),
+    KEY IX_REFRESH_TOKEN_HASH (REFRESH_TOKEN_HASH)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+";
+
+$DB->Query($sql);
+
+echo "Таблица sto_auth_token создана (или уже существовала)\n";

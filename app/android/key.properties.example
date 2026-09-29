@@ -1,0 +1,4 @@
+storePassword=ВАШ_ПАРОЛЬ_KEYSTORE
+keyPassword=ВАШ_ПАРОЛЬ_КЛЮЧА
+keyAlias=sto_app
+storeFile=../sto_app_release.keystore

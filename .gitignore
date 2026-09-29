@@ -1,0 +1,26 @@
+# Секреты — никогда не коммитить
+.secrets/
+**/key.properties
+**/*.keystore
+**/*.jks
+
+# Сборки и кэши Flutter/Gradle
+app/build/
+app/.dart_tool/
+app/.flutter-plugins-dependencies
+app/android/.gradle/
+app/android/local.properties
+app/android/app/debug/
+app/android/app/profile/
+app/android/app/release/
+app/ios/Flutter/ephemeral/
+app/ios/Flutter/Generated.xcconfig
+app/ios/Flutter/flutter_export_environment.sh
+
+# IDE
+.idea/
+*.iml
+
+# Служебное
+.playwright-mcp/
+*.log
