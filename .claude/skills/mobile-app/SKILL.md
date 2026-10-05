@@ -1,11 +1,11 @@
 ---
 name: mobile-app
-description: Работа с мобильным приложением sto.armada-motors.com в папке mobile_app/ — Flutter-клиент (app/), мини-REST на PHP (mobile_api/), REST-классы Битрикс (rest/), скрипты установки, материалы Google Play (store_listing/). Используй для любых задач по mobile_app — разобраться в структуре, запустить приложение или веб-превью, внести правку во Flutter или PHP-эндпоинт, проверить ошибки (analyze/test/curl), обновить README, собрать и подготовить релиз под Google Play.
+description: Работа с мобильным приложением sto.armada-motors.com в папке mobile_app/ — Flutter-клиент (app/), мини-REST на PHP (mobile_api/), REST-классы Битрикс (rest/), скрипты установки, материалы Google Play (store_listing/). Используй для любых задач по mobile_app — разобраться в структуре, запустить приложение или веб-превью, внести правку во Flutter или PHP-эндпоинт, проверить ошибки (analyze/test/curl), обновить README, собрать и подготовить релиз под Google Play, проверить iOS-сборку в GitHub Actions.
 ---
 
 # Мобильное приложение СТО Армада Моторс
 
-Приложение для записи на сервис: каталог услуг → запись (гостем по имени и телефону или под аккаунтом сайта) → «Мои записи» со статусами. Backend — сам сайт на 1С-Битрикс (редакция «Управление сайтом», **не** Bitrix24). Статус на 20.09.2026: MVP и Фаза 2 (авторизация + личный кабинет) готовы и проверены на проде. Идёт выпуск в Google Play (только Android), подписанные AAB/APK собраны.
+Приложение для записи на сервис: каталог услуг → запись (гостем по имени и телефону или под аккаунтом сайта) → «Мои записи» со статусами. Backend — сам сайт на 1С-Битрикс (редакция «Управление сайтом», **не** Bitrix24). Статус на 20.09.2026: MVP и Фаза 2 (авторизация + личный кабинет) готовы и проверены на проде. Идёт выпуск в Google Play (только Android), подписанные AAB/APK собраны. iOS (05.10.2026): неподписанная сборка идёт в GitHub Actions; для App Store нет аккаунта Apple Developer.
 
 Источник правды по истории и установке — `mobile_app/README.md`. ТЗ — `development_plan/tz-mobile-app.md` (MVP) и `development_plan/tz-mobile-app-phase2.md`. Прежде чем что-то менять, прочитай нужный раздел README: там записаны решения, которые уже принимались, и баги, которые уже чинились.
 
@@ -13,7 +13,8 @@ description: Работа с мобильным приложением sto.armad
 
 ```
 mobile_app/
-├── README.md                     # порядок установки backend + журнал по разделам (1–14)
+├── README.md                     # порядок установки backend + журнал по разделам (1–15)
+├── .github/workflows/ios-unsigned.yml  # неподписанная iOS-сборка на macOS-раннере (README, раздел 15)
 ├── add_*.php, install_*.php,     # разовые идемпотентные скрипты установки (prolog_before.php,
 │   check_catalog_rest_access.php #   запускаются с корня сайта); уже выполнены на проде
 ├── mobile_api/                   # мини-REST → на сервере лежит в /mobile-api/ (с дефисом!)
@@ -36,7 +37,8 @@ mobile_app/
 │   ├── lib/models/                    # service, booking_request, booking_item, auth_session
 │   ├── lib/screens/                   # catalog → booking, login, my_bookings
 │   ├── test/                          # service_model_test.dart, widget_test.dart
-│   └── android/                       # build.gradle.kts с условной релизной подписью
+│   ├── android/                       # build.gradle.kts с условной релизной подписью
+│   └── ios/                           # Xcode-проект, bundle ID com.armadamotors.stoApp, iOS 15.0+
 └── store_listing/                # google_play.md, privacy_policy_app_addendum.md,
                                   # publish_checklist.md, icon_512.png
 ```
@@ -125,7 +127,15 @@ flutter test
 4. Проверь подпись: `jarsigner -verify -certs` — должно быть `CN=Armada Motors`, а не Android Debug.
 5. Сверься с `store_listing/publish_checklist.md`: отметь сделанное и перечисли, что осталось пользователю.
 
-iOS на этой Windows-машине не собирается, нужен macOS с Xcode.
+## iOS-сборка
+
+Локально iOS не собрать: Windows, Xeon E5-2650 v2 без AVX2 (macOS для Xcode 26 в VM не пойдёт), включён Hyper-V, VMware не установлен. Не предлагай VM с macOS. Собираем в GitHub Actions.
+
+- Workflow `mobile_app/.github/workflows/ios-unsigned.yml`: Flutter 3.47.5 → `pub get` → `analyze` → `test` → `flutter build ios --release --no-codesign` → артефакт `sto_app-ios-unsigned` (неподписанный `.ipa`, 7 дней). Идёт ~3–6 мин.
+- Триггеры: ручной запуск и push в `main` с изменениями в `app/**` или в самом workflow. Минуты macOS в приватном репозитории считаются x10, поэтому триггеры не расширяй без причины.
+- Токен — секрет репозитория `STO_APP_TOKEN` (заведён 05.10.2026). Обновлять: `tr -d '\r\n' < .secrets/sto_app_token | gh secret set STO_APP_TOKEN --repo guvitor/sto-armada-mobile-app`. Значение не выводи. Что токен дошёл — в логе шага сборки строка `STO_APP_TOKEN: ***`.
+- `gh` — по полному пути `"/c/Program Files/GitHub CLI/gh.exe"`. Запуск: `gh workflow run ios-unsigned.yml --ref main`, ожидание: `gh run watch <id> --exit-status` в фоне. Для push изменений в `.github/workflows/` токену `gh` нужен scope `workflow` (уже выдан). Если push отклонён с «without `workflow` scope», пользователь выполняет `gh auth refresh -h github.com -s workflow` сам: нужен вход в браузере.
+- Неподписанную сборку на устройство не поставить. Для TestFlight/App Store нужны Apple Developer Program ($99/год, оформление и оплата из РФ затруднены — решает пользователь), сертификат, provisioning profile и iOS-иконки (`flutter_launcher_icons` сейчас только `android: true`). Это следующий этап, пока не начат.
 
 ## Границы
 
