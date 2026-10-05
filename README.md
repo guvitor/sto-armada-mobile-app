@@ -202,14 +202,14 @@ Edge-кейсы curl'ом по `mobile_api/*` на боевом сервере: 
 - Workflow: `.github/workflows/ios-unsigned.yml`. Запуск вручную (Actions → iOS unsigned build → Run workflow) или push в `main` с изменениями в `app/`.
 - Шаги: Flutter 3.47.5 → `pub get` → `analyze` → `test` → `flutter build ios --release --no-codesign` → артефакт `sto_app-ios-unsigned` (неподписанный `.ipa`, хранится 7 дней).
 - Токен приложения берётся из секрета репозитория `STO_APP_TOKEN` (Settings → Secrets and variables → Actions). Без секрета сборка проходит, но API в приложении не работает.
-- Минуты macOS в приватном репозитории считаются x10 от лимита, поэтому триггеры узкие.
+- Репозиторий публичный, поэтому минуты Actions, в том числе на macOS, бесплатны. Триггеры всё равно узкие: сборка занимает 3–6 минут, и запускать её на каждую правку README незачем.
 - На устройство неподписанную сборку не поставить. Для TestFlight/App Store нужен Apple Developer Program, сертификат и provisioning profile — отдельный этап.
 
 **Проверено: run 37283378641 (05.10.2026) зелёный за ~6 мин — analyze, test и `flutter build ios --no-codesign` прошли, артефакт ~7,6 МБ.** Собрано без секрета `STO_APP_TOKEN`. Секрет заведён 05.10.2026 из `.secrets/sto_app_token`, следующие сборки идут с токеном.
 
 ## 16. Публикация APK через GitHub Releases (05.10.2026)
 
-Пока приложение не опубликовано в Google Play, клиенты ставят Android-версию из APK на GitHub. Репозиторий `guvitor/sto-armada-mobile-app` публичный, поэтому выпуски доступны без входа в GitHub. Из-за этого замечание из раздела 15 про минуты macOS ×10 больше не действует: публичным репозиториям Actions предоставляется бесплатно.
+Пока приложение не опубликовано в Google Play, клиенты ставят Android-версию из APK на GitHub. Репозиторий `guvitor/sto-armada-mobile-app` публичный, поэтому выпуски доступны без входа в GitHub.
 
 - Инструкция для пользователей — `INSTALL.md` в корне репозитория: скачивание из Releases, разрешение установки из браузера, обход предупреждения Play Защиты, обновление и частые ошибки. Для iOS там указано «пока недоступно».
 - Выпуск [v1.0.0](https://github.com/guvitor/sto-armada-mobile-app/releases/tag/v1.0.0) содержит файл `sto-armada-1.0.0.apk` (53,8 МБ). Это release-APK из раздела 14.5 (сборка 29.09.2026, `version: 1.0.0+1`), подписанный ключом `CN=Armada Motors` (проверено `apksigner` перед загрузкой). SHA-256 указан в описании выпуска.

@@ -126,20 +126,21 @@ flutter test
 3. Собери `flutter build appbundle --release --dart-define=STO_APP_TOKEN=...` (плюс `apk --release` для проверки на телефоне).
 4. Проверь подпись: `jarsigner -verify -certs` — должно быть `CN=Armada Motors`, а не Android Debug.
 5. Сверься с `store_listing/publish_checklist.md`: отметь сделанное и перечисли, что осталось пользователю.
+6. До выхода в Google Play APK раздаётся через GitHub Releases: файл называется `sto-armada-<версия>.apk` (копия, а не переименование `app-release.apk`), инструкция для клиентов — `INSTALL.md`. Подробнее — README, раздел 16.
 
 ## iOS-сборка
 
 Локально iOS не собрать: Windows, Xeon E5-2650 v2 без AVX2 (macOS для Xcode 26 в VM не пойдёт), включён Hyper-V, VMware не установлен. Не предлагай VM с macOS. Собираем в GitHub Actions.
 
 - Workflow `mobile_app/.github/workflows/ios-unsigned.yml`: Flutter 3.47.5 → `pub get` → `analyze` → `test` → `flutter build ios --release --no-codesign` → артефакт `sto_app-ios-unsigned` (неподписанный `.ipa`, 7 дней). Идёт ~3–6 мин.
-- Триггеры: ручной запуск и push в `main` с изменениями в `app/**` или в самом workflow. Минуты macOS в приватном репозитории считаются x10, поэтому триггеры не расширяй без причины.
+- Триггеры: ручной запуск и push в `main` с изменениями в `app/**` или в самом workflow. Репозиторий публичный, поэтому минуты Actions (и macOS) бесплатны. Триггеры всё равно не расширяй без причины: каждая сборка идёт 3–6 минут.
 - Токен — секрет репозитория `STO_APP_TOKEN` (заведён 05.10.2026). Обновлять: `tr -d '\r\n' < .secrets/sto_app_token | gh secret set STO_APP_TOKEN --repo guvitor/sto-armada-mobile-app`. Значение не выводи. Что токен дошёл — в логе шага сборки строка `STO_APP_TOKEN: ***`.
 - `gh` — по полному пути `"/c/Program Files/GitHub CLI/gh.exe"`. Запуск: `gh workflow run ios-unsigned.yml --ref main`, ожидание: `gh run watch <id> --exit-status` в фоне. Для push изменений в `.github/workflows/` токену `gh` нужен scope `workflow` (уже выдан). Если push отклонён с «without `workflow` scope», пользователь выполняет `gh auth refresh -h github.com -s workflow` сам: нужен вход в браузере.
 - Неподписанную сборку на устройство не поставить. Для TestFlight/App Store нужны Apple Developer Program ($99/год, оформление и оплата из РФ затруднены — решает пользователь), сертификат, provisioning profile и iOS-иконки (`flutter_launcher_icons` сейчас только `android: true`). Это следующий этап, пока не начат.
 
 ## Границы
 
-- Git-репозиторий — `mobile_app/` (приватный GitHub `sto-armada-mobile-app`, ветка `main`). Перед каждым коммитом прогоняй `git grep --cached -lE "[0-9a-f]{64}"` (кроме `pubspec.lock`) и проверяй, что `.secrets/`, `key.properties` и `*.keystore` не попали в индекс. Push делай только по просьбе.
+- Git-репозиторий — `mobile_app/` (**публичный** GitHub `guvitor/sto-armada-mobile-app`, ветка `main`: всё, что попало в коммит, видно всем). Перед каждым коммитом прогоняй `git grep --cached -lE "[0-9a-f]{64}"` (кроме `pubspec.lock`) и проверяй, что `.secrets/`, `key.properties` и `*.keystore` не попали в индекс. Push делай только по просьбе.
 - У скилла две копии: рабочая в `.claude/skills/mobile-app/` в корне сайта и копия в репозитории `mobile_app/.claude/skills/mobile-app/`. После правки скилла синхронизируй копию в репозитории и закоммить её.
 
 - `android/key.properties` и `android/sto_app_release.keystore` **не открывать, не копировать, не пересоздавать**. Потеря или замена ключа делает обновления в Play Store невозможными. Если `key.properties` отсутствует, сборка молча подпишется debug-ключом: сообщи об этом, а не публикуй такой AAB.
