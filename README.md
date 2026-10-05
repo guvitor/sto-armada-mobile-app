@@ -194,3 +194,15 @@ Edge-кейсы curl'ом по `mobile_api/*` на боевом сервере: 
 - ID 12179420 — «Замена тормозной жидкости», 08.10.2026 14:30.
 
 У обеих в имени клиента и в комментарии стоит «ТЕСТ — скриншот, удалить».
+
+## 15. iOS: неподписанная сборка в GitHub Actions (05.10.2026)
+
+Локально iOS не собрать: нужен macOS + Xcode 26 (требование App Store с апреля 2026), а на этой машине Windows, Xeon E5-2650 v2 без AVX2 (современная macOS в VM не пойдёт) и включённый Hyper-V. VMware не установлен (папки в Program Files пустые). Поэтому сборка — на macOS-раннере GitHub.
+
+- Workflow: `.github/workflows/ios-unsigned.yml`. Запуск вручную (Actions → iOS unsigned build → Run workflow) или push в `main` с изменениями в `app/`.
+- Шаги: Flutter 3.47.5 → `pub get` → `analyze` → `test` → `flutter build ios --release --no-codesign` → артефакт `sto_app-ios-unsigned` (неподписанный `.ipa`, хранится 7 дней).
+- Токен приложения берётся из секрета репозитория `STO_APP_TOKEN` (Settings → Secrets and variables → Actions). Без секрета сборка проходит, но API в приложении не работает.
+- Минуты macOS в приватном репозитории считаются x10 от лимита, поэтому триггеры узкие.
+- На устройство неподписанную сборку не поставить. Для TestFlight/App Store нужен Apple Developer Program, сертификат и provisioning profile — отдельный этап.
+
+**Workflow ещё не запускался.**

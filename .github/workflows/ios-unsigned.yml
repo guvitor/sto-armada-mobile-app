@@ -1,0 +1,58 @@
+# Неподписанная iOS-сборка: проверяем, что проект компилируется под iOS.
+# Локально собрать нельзя (Windows без macOS, см. README, раздел 15), поэтому — macOS-раннер GitHub.
+# Минуты macOS в приватном репозитории тарифицируются x10, отсюда узкие триггеры.
+name: iOS unsigned build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - '.github/workflows/ios-unsigned.yml'
+
+concurrency:
+  group: ios-unsigned-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.5 # та же версия, что на машине разработки
+          cache: true
+
+      - run: flutter --version
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+      # Токен — из секрета репозитория STO_APP_TOKEN. Если секрета нет,
+      # сборка всё равно пройдёт, но приложение не сможет ходить в API.
+      - name: Build iOS (no codesign)
+        env:
+          STO_APP_TOKEN: ${{ secrets.STO_APP_TOKEN }}
+        run: flutter build ios --release --no-codesign --dart-define=STO_APP_TOKEN="$STO_APP_TOKEN"
+
+      # Неподписанный Runner.app, упакованный как .ipa — пригодится для переподписи.
+      # Ставить на устройство без подписи нельзя.
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p build/ipa/Payload
+          cp -R build/ios/iphoneos/Runner.app build/ipa/Payload/
+          cd build/ipa && zip -qr sto_app-unsigned.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sto_app-ios-unsigned
+          path: app/build/ipa/sto_app-unsigned.ipa
+          retention-days: 7
